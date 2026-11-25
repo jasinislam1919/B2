@@ -1,0 +1,1512 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2nd Hand Mobile & PC — Interactive Venture Command Deck</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #07060b;
+      --accent-violet: #8b5cf6;
+      --accent-violet-bright: #c4b5fd;
+      --accent-white: #ffffff;
+    }
+
+    * {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      box-sizing: border-box;
+    }
+
+    h1, h2, h3, .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: #ffffff;
+      overflow-x: hidden;
+    }
+
+    /* Interactive Particle Canvas */
+    #neuralCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    /* Spotlight & 3D Tilt Cards (Black / White / Violet) */
+    .cyber-card {
+      position: relative;
+      background: linear-gradient(155deg, rgba(20, 16, 34, 0.92), rgba(9, 8, 15, 0.96));
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(167, 139, 250, 0.22);
+      transform-style: preserve-3d;
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+      overflow: hidden;
+    }
+
+    .cyber-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(520px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(139, 92, 246, 0.2), rgba(255, 255, 255, 0.04) 35%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .cyber-card:hover::before {
+      opacity: 1;
+    }
+
+    .cyber-card:hover {
+      border-color: rgba(196, 181, 253, 0.55);
+      box-shadow: 0 25px 50px -15px rgba(5, 4, 10, 0.95), 0 0 28px -6px rgba(139, 92, 246, 0.32);
+    }
+
+    /* Animated Violet & White Pill */
+    .neon-pill {
+      background: linear-gradient(90deg, rgba(139,92,246,0.22), rgba(255,255,255,0.12), rgba(109,40,217,0.25));
+      background-size: 200% 200%;
+      animation: gradientShift 6s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    /* Scroll Reveal */
+    .reveal {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition: all 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.animate-in {
+      animation: fadeSlideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0.25;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Floating Orb */
+    @keyframes floatOrb {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1.5deg); }
+    }
+    .float-orb {
+      animation: floatOrb 5s ease-in-out infinite;
+    }
+
+    /* Interactive Tab Button */
+    .tab-btn.active {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: #ffffff;
+      border-color: #ddd6fe;
+      box-shadow: 0 8px 20px -4px rgba(139, 92, 246, 0.55);
+    }
+
+    /* Custom Range Sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      height: 6px;
+      background: #1e1933;
+      border-radius: 999px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #8b5cf6;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(167, 139, 250, 0.85);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Interactive Checklist */
+    .check-item input:checked + span {
+      text-decoration: line-through;
+      color: #a1a1aa;
+    }
+
+    /* App View Switching (No Long Scrolling!) */
+    .app-view {
+      display: none;
+      animation: viewFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .app-view.active-view {
+      display: block;
+    }
+    @keyframes viewFade {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 3-Dot Drawer Menu */
+    .menu-dropdown {
+      transform-origin: top right;
+      max-width: calc(100vw - 2rem);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    }
+    .menu-dropdown.hidden-menu {
+      opacity: 0;
+      transform: scale(0.95) translateY(-6px);
+      pointer-events: none;
+    }
+
+    /* Glowing 3-Dot Button Effect (Black, White & Violet) */
+    @keyframes dotAuraPulse {
+      0%, 100% {
+        box-shadow: 0 0 14px rgba(139, 92, 246, 0.55), 0 0 28px rgba(167, 139, 250, 0.25), inset 0 0 10px rgba(255, 255, 255, 0.12);
+      }
+      50% {
+        box-shadow: 0 0 22px rgba(196, 181, 253, 0.85), 0 0 38px rgba(139, 92, 246, 0.48), inset 0 0 14px rgba(255, 255, 255, 0.22);
+      }
+    }
+
+    @keyframes dotPingRing {
+      0% { transform: scale(1); opacity: 0.75; }
+      100% { transform: scale(1.42); opacity: 0; }
+    }
+
+    .three-dot-glow {
+      position: relative;
+      background: radial-gradient(circle at 30% 25%, rgba(196, 181, 253, 0.28), rgba(109, 40, 217, 0.35) 55%, rgba(9, 8, 15, 0.96) 100%);
+      border-color: rgba(221, 214, 254, 0.75) !important;
+      animation: dotAuraPulse 2.6s ease-in-out infinite;
+    }
+
+    .three-dot-glow::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(196, 181, 253, 0.65);
+      pointer-events: none;
+      animation: dotPingRing 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+
+    .three-dot-glow:hover {
+      transform: scale(1.06);
+      box-shadow: 0 0 28px rgba(255, 255, 255, 0.35), 0 0 42px rgba(139, 92, 246, 0.85);
+    }
+
+    /* Print / PDF Clean A4 Override */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 11mm;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #09090b !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      #neuralCanvas, .no-print {
+        display: none !important;
+      }
+
+      .app-view {
+        display: block !important;
+        opacity: 1 !important;
+        transform: none !important;
+        margin-bottom: 18px !important;
+      }
+
+      .cyber-card {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        transform: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .cyber-card::before {
+        display: none !important;
+      }
+
+      .reveal {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+
+      h1, h2, h3, h4, .font-display {
+        color: #09090b !important;
+      }
+
+      p, li, span, td, th, pre, label {
+        color: #18181b !important;
+      }
+
+      .print-badge {
+        background: #f5f3ff !important;
+        color: #4c1d95 !important;
+        border: 1px solid #8b5cf6 !important;
+      }
+
+      .print-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-violet-500 selection:text-white">
+
+  <!-- Animated Particle Network Background -->
+  <canvas id="neuralCanvas"></canvas>
+
+  <!-- Floating Command Bar with Clean 3-Dot Navigation & Custom B2 Logo -->
+  <header class="no-print sticky top-0 z-50 border-b border-violet-500/20 bg-black/90 backdrop-blur-xl">
+    <div class="max-w-6xl mx-auto px-3 sm:px-5 py-3 flex items-center justify-between gap-2 sm:gap-4">
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 cursor-pointer group" onclick="switchView('overview')">
+        <!-- Custom B2 Geometric Monogram SVG Logo (Black, White, Violet) -->
+        <div class="relative w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-violet-600 via-purple-700 to-black border border-violet-300/50 flex items-center justify-center shadow-lg shadow-violet-600/30 group-hover:scale-105 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" class="w-7 h-7">
+            <defs>
+              <linearGradient id="b2Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="100%" stop-color="#ddd6fe" />
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="42" height="42" rx="10" fill="none" stroke="#c4b5fd" stroke-width="1.5" stroke-opacity="0.55" />
+            <!-- Stylized 'B' -->
+            <path d="M10 13h8.5a4.5 4.5 0 0 1 0 9H10V13zm0 9h9.5a5 5 0 0 1 0 13H10V22z" fill="url(#b2Grad)" />
+            <!-- Stylized '2' -->
+            <path d="M27.5 16.5c0-2.5 2.2-4.5 5-4.5s5 1.9 5 4.3c0 2-1.2 3.5-3.6 5.4l-4.2 3.3h8v4h-14v-2.8l5.8-4.7c1.9-1.5 2.6-2.5 2.6-3.9 0-1.1-.9-1.9-2-1.9s-2 .8-2 2.1h-4.6z" fill="#c4b5fd" />
+            <circle cx="38" cy="34" r="2.2" fill="#ffffff" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="font-display font-bold text-sm sm:text-base text-white leading-none flex items-center gap-1.5 truncate">
+            <span class="truncate">2nd Hand Mobile &amp; PC</span>
+            <span class="px-1.5 py-0.5 shrink-0 text-[10px] font-mono rounded bg-violet-500/20 border border-violet-400/40 text-violet-200">B2</span>
+          </div>
+          <div id="currentSectionLabel" class="text-[11px] text-violet-300 font-medium mt-0.5 truncate">01 • Venture Overview &amp; Founders</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 relative">
+        <button id="fullScreenBtn" onclick="toggleFullScreen()" aria-label="Toggle Full Screen" title="Toggle Full Screen" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-zinc-950 hover:bg-violet-950/60 text-violet-200 hover:text-white font-bold text-xs border border-violet-400/35 shadow-md shadow-violet-950/60 transition active:scale-95 cursor-pointer">
+          <!-- Expand Icon -->
+          <svg id="expandIcon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+          <!-- Compress Icon -->
+          <svg id="compressIcon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+          </svg>
+          <span id="fullScreenLabel" class="hidden md:inline">Full Screen</span>
+        </button>
+
+        <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-violet-500 hover:brightness-110 text-white font-extrabold text-xs border border-violet-300/30 shadow-lg shadow-violet-600/30 transition active:scale-95 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span>PDF</span>
+        </button>
+
+        <!-- 3-Dot Navigation Menu Button -->
+        <button id="threeDotBtn" onclick="toggleThreeDotMenu(event)" aria-label="Open Navigation Menu" class="three-dot-glow w-10 h-10 shrink-0 rounded-xl bg-zinc-950 hover:bg-violet-950/60 border border-violet-400/35 flex items-center justify-center text-white transition active:scale-95 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.85)]" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="5" r="2.2" />
+            <circle cx="12" cy="12" r="2.2" />
+            <circle cx="12" cy="19" r="2.2" />
+          </svg>
+        </button>
+
+        <!-- Clean 3-Dot Dropdown Drawer -->
+        <div id="threeDotMenu" class="menu-dropdown hidden-menu fixed sm:absolute right-3 sm:right-0 top-16 sm:top-12 w-72 rounded-2xl bg-zinc-950/95 backdrop-blur-2xl border border-violet-400/35 shadow-2xl shadow-black/90 p-2 z-50">
+          <div class="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-violet-300/80 border-b border-violet-500/20 mb-1">
+            B2 Module Switcher
+          </div>
+          <button onclick="switchView('overview')" data-nav="overview" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-violet-600/25 border border-violet-400/30 flex items-center justify-between transition cursor-pointer">
+            <span>01. Overview &amp; Founders</span>
+            <span class="text-[10px] font-mono text-violet-200">15K Pool</span>
+          </button>
+          <button onclick="switchView('profit')" data-nav="profit" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-zinc-200 hover:bg-violet-950/50 flex items-center justify-between transition cursor-pointer mt-1">
+            <span>02. Smart Profit &amp; PC Lab</span>
+            <span class="text-[10px] font-mono text-violet-300">Simulators</span>
+          </button>
+          <button onclick="switchView('catalog')" data-nav="catalog" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-zinc-200 hover:bg-violet-950/50 flex items-center justify-between transition cursor-pointer mt-1">
+            <span>03. 54-Model Resale Catalog</span>
+            <span class="text-[10px] font-mono text-violet-300">2K–7K ৳</span>
+          </button>
+          <button onclick="switchView('marketing')" data-nav="marketing" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-zinc-200 hover:bg-violet-950/50 flex items-center justify-between transition cursor-pointer mt-1">
+            <span>04. Marketing, Scripts &amp; Ad Lab</span>
+            <span class="text-[10px] font-mono text-violet-300">.99 Rules</span>
+          </button>
+          <button onclick="switchView('safety')" data-nav="safety" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-zinc-200 hover:bg-violet-950/50 flex items-center justify-between transition cursor-pointer mt-1">
+            <span>05. BTRC Legal &amp; 8-Point QC</span>
+            <span class="text-[10px] font-mono text-violet-300">16002</span>
+          </button>
+          <button onclick="switchView('ledger')" data-nav="ledger" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-zinc-200 hover:bg-violet-950/50 flex items-center justify-between transition cursor-pointer mt-1">
+            <span>06. Live Ledger &amp; PC Blueprint</span>
+            <span class="text-[10px] font-mono text-violet-300">Interactive</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace (Clean Tabbed Modules — Zero Endless Scrolling) -->
+  <main class="relative z-10 max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- MODULE 01: OVERVIEW & FOUNDERS -->
+    <div id="view-overview" class="app-view active-view space-y-6">
+      <!-- Compact Hero Banner with B2 Emblem & Visual Workflow Strip -->
+      <div class="cyber-card rounded-2xl p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full neon-pill border border-violet-300/35 text-violet-200 text-xs font-bold tracking-wide print-badge">
+            <span class="w-2 h-2 rounded-full bg-violet-300 animate-ping"></span>
+            <span>B2 VENTURE • BLACK / WHITE / VIOLET EDITION</span>
+          </div>
+          <span class="text-xs text-zinc-400 font-mono">Click ⋮ Top-Right For Tools</span>
+        </div>
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-5">
+          <div>
+            <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-2.5">
+              2nd Hand Mobile <span class="text-transparent bg-clip-text bg-gradient-to-r from-white via-violet-300 to-violet-500">&amp; PC Venture</span>
+            </h1>
+            <p class="text-zinc-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
+              Founded by <strong class="text-white">Jasin, Anik &amp; Rafid</strong> with <strong class="text-violet-300">15,000 BDT</strong> seed capital. Flipping verified 2K–7K BDT budget smartphones with smart touch-ups and honest condition notes to scale into 2nd-hand PCs.
+            </p>
+          </div>
+
+          <!-- Visual B2 Pipeline Badge -->
+          <div class="shrink-0 p-3.5 rounded-2xl bg-black/75 border border-violet-400/30 flex items-center gap-3 self-start md:self-auto">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="w-12 h-12">
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#161029" stroke="#a78bfa" stroke-width="1.5" />
+              <path d="M14 17h11a6 6 0 0 1 0 12H14V17zm0 12h12.5a6.5 6.5 0 0 1 0 17H14V29z" fill="#ffffff" />
+              <path d="M36 22c0-3.4 3-6 6.8-6s6.8 2.5 6.8 5.8c0 2.7-1.6 4.7-4.8 7.2l-5.6 4.4h10.8v5.4H30v-3.8l7.8-6.3c2.5-2 3.5-3.3 3.5-5.2 0-1.5-1.2-2.6-2.7-2.6s-2.7 1.1-2.7 2.8H36z" fill="#c4b5fd" />
+            </svg>
+            <div class="text-xs">
+              <div class="font-display font-extrabold text-white text-sm">B2 Flip Engine</div>
+              <div class="text-violet-300 font-mono text-[11px]">Source → QC → .99 Flip</div>
+              <div class="text-zinc-400 text-[10px] mt-0.5">Target: 2nd-Hand PCs</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Compact KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+          <div class="p-4 rounded-xl bg-black/70 border border-violet-500/20">
+            <div class="text-[11px] text-zinc-400 uppercase font-semibold">Seed Capital</div>
+            <div class="font-display text-2xl sm:text-3xl font-extrabold text-white mt-1">15,000 ৳</div>
+            <div class="text-[11px] text-violet-300 mt-0.5">3 × 5,000 BDT Equal</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/70 border border-violet-500/20">
+            <div class="text-[11px] text-zinc-400 uppercase font-semibold">Target Price Band</div>
+            <div class="font-display text-2xl sm:text-3xl font-extrabold text-violet-300 mt-1">2K–7K ৳</div>
+            <div class="text-[11px] text-zinc-400 mt-0.5">54 Android &amp; iPhone Models</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/70 border border-violet-500/20">
+            <div class="text-[11px] text-zinc-400 uppercase font-semibold">Target Profit</div>
+            <div class="font-display text-2xl sm:text-3xl font-extrabold text-white mt-1">700–1.2K ৳</div>
+            <div class="text-[11px] text-violet-300 mt-0.5">Net Per Flipped Phone</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/70 border border-violet-500/20">
+            <div class="text-[11px] text-zinc-400 uppercase font-semibold">Daily Time</div>
+            <div class="font-display text-2xl sm:text-3xl font-extrabold text-violet-300 mt-1">30–45m</div>
+            <div class="text-[11px] text-zinc-400 mt-0.5">Per Founder Daily</div>
+          </div>
+        </div>
+
+        <!-- Seed Fund Allocation Bar + Visual Legend -->
+        <div class="p-4 rounded-xl bg-black/80 border border-violet-500/20">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2 text-xs">
+            <span class="font-bold text-white">15,000 BDT Seed Allocation</span>
+            <span class="text-violet-300 font-mono">Inventory: 12.5K • Kit: 1.2K • Buffer: 1.3K</span>
+          </div>
+          <div class="w-full h-3 rounded-full bg-zinc-900 overflow-hidden flex p-0.5 border border-violet-500/25">
+            <div class="bg-gradient-to-r from-violet-500 to-purple-400 h-full rounded-l-full" style="width: 83.3%"></div>
+            <div class="bg-white h-full mx-0.5" style="width: 8%"></div>
+            <div class="bg-violet-300 h-full rounded-r-full" style="width: 8.7%"></div>
+          </div>
+          <div class="flex flex-wrap gap-4 mt-2.5 text-[11px] text-zinc-300">
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>Stock Pool (12,500 ৳)</span>
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-white"></span>Glass &amp; Cover Kit (1,200 ৳)</span>
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-violet-300"></span>Safety Reserve (1,300 ৳)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Founders Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="cyber-card tilt-card rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-violet-600/25 border border-violet-300/40 flex items-center justify-center text-white font-display font-extrabold">J</div>
+            <span class="px-2.5 py-1 rounded-lg bg-black text-violet-200 border border-violet-500/30 text-xs font-mono font-bold">5,000 ৳</span>
+          </div>
+          <h3 class="text-lg font-bold text-white">Jasin</h3>
+          <div class="text-xs font-semibold text-violet-300 mb-2">Sourcing &amp; Hardware QC</div>
+          <ul class="text-xs text-zinc-300 space-y-1.5">
+            <li>▸ Hunts urgent deals on FB &amp; Bikroy</li>
+            <li>▸ Runs 8-point hardware diagnostics</li>
+            <li>▸ Verifies BTRC IMEI via 16002 SMS</li>
+          </ul>
+        </div>
+
+        <div class="cyber-card tilt-card rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-violet-600/25 border border-violet-300/40 flex items-center justify-center text-violet-200 font-display font-extrabold">A</div>
+            <span class="px-2.5 py-1 rounded-lg bg-black text-violet-200 border border-violet-500/30 text-xs font-mono font-bold">5,000 ৳</span>
+          </div>
+          <h3 class="text-lg font-bold text-white">Anik</h3>
+          <div class="text-xs font-semibold text-violet-300 mb-2">Branding, Ads &amp; Sales</div>
+          <ul class="text-xs text-zinc-300 space-y-1.5">
+            <li>▸ Daylight photos &amp; honest condition notes</li>
+            <li>▸ Applies .99 charm pricing &amp; 20/80 anchor</li>
+            <li>▸ Replies to buyer chats within 15 mins</li>
+          </ul>
+        </div>
+
+        <div class="cyber-card tilt-card rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-violet-600/25 border border-violet-300/40 flex items-center justify-center text-white font-display font-extrabold">R</div>
+            <span class="px-2.5 py-1 rounded-lg bg-black text-violet-200 border border-violet-500/30 text-xs font-mono font-bold">5,000 ৳</span>
+          </div>
+          <h3 class="text-lg font-bold text-white">Rafid</h3>
+          <div class="text-xs font-semibold text-violet-300 mb-2">Finance, Meetups &amp; PC Scale</div>
+          <ul class="text-xs text-zinc-300 space-y-1.5">
+            <li>▸ Tracks unit profit &amp; 70% reinvestment pool</li>
+            <li>▸ Coordinates safe public place handovers</li>
+            <li>▸ Leads Phase-3 budget PC sourcing</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Quick Next-Step Action Bar -->
+      <div class="no-print cyber-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <span class="text-xs text-zinc-300">Ready to run smart profit scenarios or filter the 54-phone B2 catalog?</span>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="switchView('profit')" class="px-3.5 py-2 rounded-xl bg-violet-600/30 border border-violet-300/45 text-white text-xs font-bold hover:bg-violet-600/45 transition cursor-pointer">Smart Profit &amp; PC Lab →</button>
+          <button onclick="switchView('catalog')" class="px-3.5 py-2 rounded-xl bg-white/10 border border-white/30 text-violet-200 text-xs font-bold hover:bg-white/20 transition cursor-pointer">Browse 54 Mobiles →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 02: SMART PROFIT & PC GROWTH LAB -->
+    <div id="view-profit" class="app-view space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Smart Single Deal Profit Engine -->
+        <div class="lg:col-span-6 cyber-card rounded-2xl p-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div>
+              <span class="text-xs font-mono text-violet-300 uppercase">Smart Profit Intelligence</span>
+              <h2 class="text-xl font-bold text-white">Smart Deal &amp; Split Simulator</h2>
+            </div>
+            <span id="dealVerdictBadge" class="px-2.5 py-1 rounded-full bg-violet-500/25 border border-violet-300/40 text-white text-[11px] font-bold print-badge">Strong Flip 🔥</span>
+          </div>
+          <p class="text-xs text-zinc-300 mb-3">
+            Instant scenario presets + live visual cost-vs-profit meter + per-founder share breakdown:
+          </p>
+
+          <!-- Smart Quick Scenario Chips -->
+          <div class="no-print flex flex-wrap gap-1.5 mb-4">
+            <button onclick="applyProfitPreset(2400, 150, 3499)" class="px-2.5 py-1 rounded-lg bg-black hover:bg-violet-950/60 border border-violet-500/30 text-[11px] font-mono text-violet-200 transition cursor-pointer">⚡ Budget 2.4K Flip</button>
+            <button onclick="applyProfitPreset(2800, 200, 3999)" class="px-2.5 py-1 rounded-lg bg-black hover:bg-violet-950/60 border border-violet-500/30 text-[11px] font-mono text-white transition cursor-pointer">💎 Sweet-Spot 2.8K</button>
+            <button onclick="applyProfitPreset(4400, 250, 5999)" class="px-2.5 py-1 rounded-lg bg-black hover:bg-violet-950/60 border border-violet-500/30 text-[11px] font-mono text-violet-200 transition cursor-pointer">🚀 High-Tier 4.4K</button>
+          </div>
+
+          <div class="space-y-3.5 bg-black/80 p-4 rounded-xl border border-violet-500/20">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-zinc-300">Sourcing Buy Price</span>
+                <span id="buyVal" class="font-mono font-bold text-white">2,800 ৳</span>
+              </div>
+              <input id="buyInput" type="range" min="1500" max="5500" step="100" value="2800" class="no-print w-full">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-zinc-300">Touch-Up Cost (Glass + Cover + Clean)</span>
+                <span id="touchVal" class="font-mono font-bold text-violet-300">200 ৳</span>
+              </div>
+              <input id="touchInput" type="range" min="0" max="800" step="50" value="200" class="no-print w-full">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-zinc-300">Final Agreed Sell Price</span>
+                <span id="sellVal" class="font-mono font-bold text-white">3,999 ৳</span>
+              </div>
+              <input id="sellInput" type="range" min="2000" max="7000" step="50" value="3999" class="no-print w-full">
+            </div>
+
+            <!-- Visual Cost vs Net Profit Stacked Meter -->
+            <div class="pt-1">
+              <div class="flex justify-between text-[10px] font-mono text-zinc-400 mb-1">
+                <span id="costShareLabel">Capital + Touch: 75%</span>
+                <span id="profitShareLabel">Net Profit: 25%</span>
+              </div>
+              <div class="w-full h-2.5 rounded-full bg-zinc-900 overflow-hidden flex border border-violet-500/25">
+                <div id="costMeterBar" class="bg-zinc-600 h-full transition-all duration-300" style="width: 75%"></div>
+                <div id="profitMeterBar" class="bg-gradient-to-r from-violet-500 to-white h-full transition-all duration-300" style="width: 25%"></div>
+              </div>
+            </div>
+
+            <!-- 4 Metrics Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-violet-500/20 text-center">
+              <div class="p-2 rounded-xl bg-zinc-950 border border-zinc-800">
+                <div class="text-[10px] text-zinc-400 uppercase">Total Cost</div>
+                <div id="totalCost" class="font-display text-sm font-bold text-white mt-0.5">3,000 ৳</div>
+              </div>
+              <div class="p-2 rounded-xl bg-zinc-950 border border-zinc-800">
+                <div class="text-[10px] text-zinc-400 uppercase">Anchor (.99)</div>
+                <div id="listPrice" class="font-display text-sm font-bold text-violet-300 mt-0.5">4,499 ৳</div>
+              </div>
+              <div class="p-2 rounded-xl bg-violet-600/25 border border-violet-300/40">
+                <div class="text-[10px] text-violet-200 uppercase">Net Profit</div>
+                <div id="netProfit" class="font-display text-sm font-extrabold text-white mt-0.5">+999 ৳</div>
+              </div>
+              <div class="p-2 rounded-xl bg-white/10 border border-white/25">
+                <div class="text-[10px] text-zinc-200 uppercase">ROI Margin</div>
+                <div id="roiPercent" class="font-display text-sm font-extrabold text-violet-200 mt-0.5">33.3%</div>
+              </div>
+            </div>
+
+            <!-- Smart Profit Allocation Strip (70% Reinvest / 30% Split Among 3 Founders) -->
+            <div class="p-2.5 rounded-xl bg-violet-950/50 border border-violet-400/25 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+              <span class="text-violet-200 font-semibold">🔄 Reinvest (70%): <strong id="reinvestShare" class="text-white font-mono">699 ৳</strong></span>
+              <span class="text-zinc-200 font-semibold">👥 Per Founder (10% ea): <strong id="perFounderShare" class="text-violet-200 font-mono">100 ৳</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6-Month Capital Growth Simulator -->
+        <div class="lg:col-span-6 cyber-card rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <span class="text-xs font-mono text-violet-300 uppercase">Compounding Engine</span>
+              <h2 class="text-xl font-bold text-white">15K → PC Expansion Simulator</h2>
+            </div>
+            <span id="pcUnlockBadge" class="px-2.5 py-1 rounded-full bg-violet-600/30 border border-violet-300/40 text-white text-xs font-bold print-badge">PC Ready: Month 5</span>
+          </div>
+          <p class="text-xs text-zinc-300 mb-4">
+            Reinvesting 70% of profit each month turns <strong>15,000 ৳</strong> into 2nd-hand desktop PC &amp; monitor inventory:
+          </p>
+
+          <div class="bg-black/80 p-4 rounded-xl border border-violet-500/20 space-y-4">
+            <div>
+              <div class="flex justify-between text-xs mb-1.5">
+                <span class="text-zinc-300">Phones Flipped Per Month (Team Total)</span>
+                <span id="flipsVal" class="font-mono font-bold text-violet-300">6 Phones / Month</span>
+              </div>
+              <input id="flipsInput" type="range" min="3" max="15" step="1" value="6" class="no-print w-full">
+            </div>
+
+            <div id="growthBars" class="grid grid-cols-6 gap-2 items-end h-32 pt-4 px-1 border-b border-violet-500/20"></div>
+            <div class="grid grid-cols-6 gap-2 text-center text-[10px] font-mono text-zinc-400">
+              <span>M1</span><span>M2</span><span>M3</span><span>M4</span><span>M5</span><span>M6</span>
+            </div>
+
+            <div class="flex items-center justify-between text-xs pt-1">
+              <span class="text-zinc-300">Projected Month-6 Business Capital:</span>
+              <span id="month6Cap" class="font-display text-lg font-extrabold text-white">40,200 ৳</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3-Phase Roadmap + Touch-Up Cost Cheat Sheet -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="cyber-card rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-white mb-4">3-Phase Growth Roadmap</h3>
+          <div class="relative pl-5 border-l-2 border-violet-500/40 space-y-4 text-xs">
+            <div class="relative">
+              <span class="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-white shadow-sm shadow-white"></span>
+              <div class="font-bold text-white">PHASE 01 • MONTHS 1–2 (15K Capital)</div>
+              <p class="text-zinc-300 mt-0.5">Flip 2K–7K BDT Android &amp; classic iPhones, master QC, and build 5-star Marketplace trust.</p>
+            </div>
+            <div class="relative">
+              <span class="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-violet-400"></span>
+              <div class="font-bold text-violet-300">PHASE 02 • MONTHS 3–4 (25K+ Capital)</div>
+              <p class="text-zinc-300 mt-0.5">Expand into higher-tier phones + high-margin accessories (chargers, earphones, covers).</p>
+            </div>
+            <div class="relative">
+              <span class="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-violet-600 ring-2 ring-violet-300"></span>
+              <div class="font-bold text-violet-200">PHASE 03 • MONTH 5+ (35K–45K+ Capital)</div>
+              <p class="text-zinc-300 mt-0.5">Enter 2nd-hand student/office PCs (Core i3/i5 4th–6th Gen), LED monitors, SSDs &amp; RAM upgrades.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="cyber-card rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-white mb-4">Wholesale Touch-Up &amp; Refurb Cost Guide (Dhaka)</h3>
+          <div class="grid grid-cols-2 gap-2.5 text-xs">
+            <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20">
+              <div class="text-zinc-400">5D / Matte Screen Glass</div>
+              <div class="font-mono font-bold text-violet-300 mt-0.5">40 – 70 ৳ (Wholesale)</div>
+            </div>
+            <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20">
+              <div class="text-zinc-400">Silicone / Carbon Back Cover</div>
+              <div class="font-mono font-bold text-white mt-0.5">60 – 100 ৳ (Hides cracks)</div>
+            </div>
+            <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20">
+              <div class="text-zinc-400">Back Skin / Wrap Sticker</div>
+              <div class="font-mono font-bold text-white mt-0.5">50 – 80 ৳ (Fresh look)</div>
+            </div>
+            <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20">
+              <div class="text-zinc-400">Charging Port &amp; Speaker Clean</div>
+              <div class="font-mono font-bold text-violet-300 mt-0.5">0 – 30 ৳ (IPA + Brush)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 03: 54-MODEL RESALE CATALOG (ANDROID & APPLE) -->
+    <div id="view-catalog" class="app-view space-y-5">
+      <div class="cyber-card rounded-2xl p-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div>
+            <span class="text-xs font-mono text-violet-300 uppercase">Master Resale Catalog (2,000 ৳ – 7,000 ৳)</span>
+            <h2 class="text-xl sm:text-2xl font-bold text-white">54 Fast-Selling Android &amp; Apple Models in Bangladesh</h2>
+          </div>
+
+          <div class="no-print flex flex-wrap items-center gap-2">
+            <button onclick="setOsFilter('ALL')" id="filterAll" class="tab-btn active px-3.5 py-1.5 rounded-xl border border-violet-400/40 text-xs font-bold transition cursor-pointer">All (54)</button>
+            <button onclick="setOsFilter('Android')" id="filterAndroid" class="tab-btn px-3.5 py-1.5 rounded-xl border border-violet-500/30 text-xs font-bold text-zinc-300 hover:text-white transition cursor-pointer">Android (42)</button>
+            <button onclick="setOsFilter('Apple')" id="filterApple" class="tab-btn px-3.5 py-1.5 rounded-xl border border-violet-500/30 text-xs font-bold text-zinc-300 hover:text-white transition cursor-pointer">Apple (12)</button>
+          </div>
+        </div>
+
+        <!-- Cosmetic Flaw Rule Strip (Black, White & Violet) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-xs">
+          <div class="p-3 rounded-xl bg-violet-950/50 border border-violet-300/35 text-violet-100">
+            <strong class="text-white">✓ Buy Cheap &amp; Profit:</strong> Hairline display glass crack (100% touch/LCD ok) or scratched/cracked backshell (hide with 100৳ cover) = <strong class="text-violet-200">500–900 ৳ cheaper buy!</strong>
+          </div>
+          <div class="p-3 rounded-xl bg-black/80 border border-white/25 text-zinc-200">
+            <strong class="text-white">✕ Never Buy:</strong> Dead touch, display lines, ink spots, bypassed iCloud, swollen battery, or unverified IMEI.
+          </div>
+        </div>
+
+        <!-- Search & Price Tier Filter Bar -->
+        <div class="no-print grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+          <input id="modelSearchInput" type="text" placeholder="Search model, RAM/ROM, or brand (e.g., Redmi, iPhone 7, 4/64)..." class="sm:col-span-2 px-3.5 py-2.5 rounded-xl bg-black border border-violet-500/35 text-xs text-white focus:outline-none focus:border-violet-300">
+          <select id="tierFilterSelect" class="px-3.5 py-2.5 rounded-xl bg-black border border-violet-500/35 text-xs text-white focus:outline-none focus:border-violet-300">
+            <option value="ALL">All Price Tiers (2K – 7K ৳)</option>
+            <option value="2K-3.5K">Ultra-Budget Tier (2,000 – 3,500 ৳)</option>
+            <option value="3.5K-5K">Sweet-Spot Tier (3,500 – 5,000 ৳)</option>
+            <option value="5K-7K">High-Margin Tier (5,000 – 7,000 ৳)</option>
+          </select>
+        </div>
+
+        <!-- Android Section -->
+        <div id="androidSection" class="mb-7">
+          <div class="flex items-center justify-between mb-3 pb-2 border-b border-violet-500/30">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>Android Fast-Movers</span>
+              <span id="androidCountBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-violet-600/25 border border-violet-300/35 text-violet-200 font-mono print-badge">42 Models</span>
+            </h3>
+            <span class="text-[11px] text-zinc-400">Xiaomi • Realme • Samsung • Vivo • Oppo • Infinix/Tecno</span>
+          </div>
+          <div id="androidGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- Apple iPhone Section -->
+        <div id="appleSection">
+          <div class="flex items-center justify-between mb-3 pb-2 border-b border-violet-400/35">
+            <h3 class="text-base font-bold text-violet-200 flex items-center gap-2">
+              <span>Apple iPhone Budget &amp; Classic Flips</span>
+              <span id="appleCountBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-white/10 border border-white/30 text-white font-mono print-badge">12 Models</span>
+            </h3>
+            <span class="text-[11px] text-zinc-400">Always Verify Clean iCloud &amp; Non-Bypassed</span>
+          </div>
+          <div id="appleGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 04: MARKETING, SCRIPTS & AD STUDIO -->
+    <div id="view-marketing" class="app-view space-y-6 print-break">
+      <!-- 6-Point Marketing Rules -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="cyber-card rounded-2xl p-5">
+          <div class="text-xs font-mono text-violet-300 mb-1">RULE 01 // TRUST</div>
+          <h3 class="font-bold text-white text-sm mb-1">Show True Pros &amp; Cons</h3>
+          <p class="text-xs text-zinc-300">Disclose minor glass cracks or cover scuffs upfront—builds instant trust and prevents meetup cancellations.</p>
+        </div>
+        <div class="cyber-card rounded-2xl p-5">
+          <div class="text-xs font-mono text-violet-300 mb-1">RULE 02 // VALUE</div>
+          <h3 class="font-bold text-white text-sm mb-1">Highlight Specs &amp; Freebies</h3>
+          <p class="text-xs text-zinc-300">Spotlight RAM/ROM, battery hours, camera, plus free fresh glass protector &amp; cover.</p>
+        </div>
+        <div class="cyber-card rounded-2xl p-5">
+          <div class="text-xs font-mono text-violet-300 mb-1">RULE 03 // TARGETING</div>
+          <h3 class="font-bold text-white text-sm mb-1">Who Should Buy &amp; Why</h3>
+          <p class="text-xs text-zinc-300">Write directly for students, online classes, delivery riders, or secondary backup users.</p>
+        </div>
+        <div class="cyber-card rounded-2xl p-5">
+          <div class="text-xs font-mono text-white mb-1">RULE 04 // ANCHOR</div>
+          <h3 class="font-bold text-white text-sm mb-1">Smart Anchor &amp; Drop</h3>
+          <p class="text-xs text-zinc-300">List at 3,499 ৳ and drop to 2,999 ৳ so buyers see clear savings while your profit stays safe.</p>
+        </div>
+        <div class="cyber-card rounded-2xl p-5">
+          <div class="text-xs font-mono text-white mb-1">RULE 05 // BARGAINING</div>
+          <h3 class="font-bold text-white text-sm mb-1">Let Buyers Feel They Won</h3>
+          <p class="text-xs text-zinc-300">Keep a 300–500 ৳ bargaining buffer so discounting at the end closes the deal faster.</p>
+        </div>
+        <div class="cyber-card rounded-2xl p-5">
+          <div class="text-xs font-mono text-white mb-1">RULE 06 // .99 PRICING</div>
+          <h3 class="font-bold text-white text-sm mb-1">End Prices With 99</h3>
+          <p class="text-xs text-zinc-300">Use <strong class="text-violet-200">2,999 ৳</strong> instead of 3,000 ৳ and <strong class="text-violet-200">4,499 ৳</strong> instead of 4,500 ৳.</p>
+        </div>
+      </div>
+
+      <!-- Live Ad Studio + Copy-Paste Chat Bargaining Scripts -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7 cyber-card rounded-2xl p-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="text-lg font-bold text-white">Live Marketplace &amp; Bikroy Ad Builder</h3>
+            <button id="copyAdBtn" onclick="copyListingTemplate()" class="no-print px-3.5 py-1.5 rounded-xl bg-violet-600/30 hover:bg-violet-600/45 border border-violet-300/45 text-white text-xs font-bold transition cursor-pointer">
+              Copy Ad
+            </button>
+          </div>
+          <div class="no-print grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3">
+            <input id="adModelInput" type="text" value="Redmi Note 8 (4/64GB)" placeholder="Phone Model" class="px-3 py-2 rounded-xl bg-black border border-violet-500/35 text-xs text-white focus:outline-none focus:border-violet-300">
+            <input id="adPriceInput" type="text" value="5,999 BDT" placeholder="Charm Price (.99)" class="px-3 py-2 rounded-xl bg-black border border-violet-500/35 text-xs text-white focus:outline-none focus:border-violet-300">
+            <input id="adAreaInput" type="text" value="Mirpur / Uttara Public Point" placeholder="Meetup Location" class="px-3 py-2 rounded-xl bg-black border border-violet-500/35 text-xs text-white focus:outline-none focus:border-violet-300">
+          </div>
+          <div class="p-4 rounded-xl bg-black/80 border border-violet-500/20">
+            <pre id="adTemplateText" class="whitespace-pre-wrap font-sans text-xs text-zinc-200 leading-relaxed"></pre>
+          </div>
+        </div>
+
+        <!-- Ready-to-Use Chat Scripts -->
+        <div class="lg:col-span-5 cyber-card rounded-2xl p-6 space-y-3">
+          <h3 class="text-lg font-bold text-white">High-Converting Chat Scripts</h3>
+          <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20 text-xs">
+            <div class="font-bold text-violet-300 mb-1">1. When Sourcing (Buying Low):</div>
+            <p class="text-zinc-300 italic">"Bhai, phone-er display glass-e halka scratch/crack ache ar backshell worn—ami aajkei public point-e eshe cash-e [Target Buy] taka dite parbo. Urgent sell korle janaben."</p>
+          </div>
+          <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20 text-xs">
+            <div class="font-bold text-white mb-1">2. When Buyer Bargains Hard:</div>
+            <p class="text-zinc-300 italic">"Bhai, phone-er IMEI BTRC verified + notun protector &amp; cover lagano ache. Apnar jonno last [Final .99 Price] rakhlam, aajke nile confirm korte paren."</p>
+          </div>
+          <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20 text-xs">
+            <div class="font-bold text-violet-200 mb-1">3. Trust Closer:</div>
+            <p class="text-zinc-300 italic">"Apni nijer SIM dhukiye 15 minute shob check kore tarpor taka diben. Kono hidden problem nai."</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 05: BTRC LEGAL & 8-POINT QC -->
+    <div id="view-safety" class="app-view grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="cyber-card rounded-2xl p-6 border-l-4 border-l-white">
+        <span class="text-xs font-mono text-violet-300 uppercase">Legal &amp; Anti-Theft Shield</span>
+        <h3 class="text-xl font-bold text-white mt-1 mb-3">Bangladesh BTRC IMEI &amp; Seller Verification</h3>
+        <div class="space-y-3 text-xs text-zinc-200">
+          <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20">
+            <strong class="text-violet-300">1. Dual IMEI Match:</strong> Dial <code class="px-1.5 py-0.5 rounded bg-zinc-950 text-white border border-violet-500/30 font-mono">*#06#</code> and match the 15-digit IMEI with box and SIM tray.
+          </div>
+          <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20">
+            <strong class="text-white">2. BTRC / NEIR SMS Check:</strong> Send <code class="px-1.5 py-0.5 rounded bg-zinc-950 text-violet-200 border border-violet-500/30 font-mono">KYD &lt;15-digit IMEI&gt;</code> to <strong class="text-white">16002</strong> (or dial <code class="text-violet-300">*16161#</code>) before paying.
+          </div>
+          <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20">
+            <strong class="text-violet-200">3. Seller Proof Log:</strong> Prefer box/memo sets. For boxless phones, take seller's NID photo, phone number &amp; signed handover slip.
+          </div>
+          <div class="p-3 rounded-xl bg-black/75 border border-violet-500/20">
+            <strong class="text-white">4. Public Meetup Rule:</strong> Always meet at busy public spots (mall gate, market entrance, or campus) — never isolated alleys.
+          </div>
+        </div>
+      </div>
+
+      <div class="cyber-card rounded-2xl p-6 border-l-4 border-l-violet-500">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <span class="text-xs font-mono text-violet-300 uppercase">Hardware Gatekeeper</span>
+            <h3 class="text-xl font-bold text-white mt-0.5">Interactive 8-Point QC Checklist</h3>
+          </div>
+          <span id="qcScoreBadge" class="px-3 py-1 rounded-full bg-violet-600/25 border border-violet-300/40 text-white font-mono text-xs font-bold print-badge">4 / 8 Passed</span>
+        </div>
+
+        <div class="w-full h-2.5 rounded-full bg-zinc-900 overflow-hidden mb-4 border border-violet-500/25">
+          <div id="qcProgressBar" class="h-full bg-gradient-to-r from-violet-500 to-white transition-all duration-300" style="width: 50%"></div>
+        </div>
+
+        <div id="qcChecklist" class="space-y-2 text-xs text-zinc-200">
+          <label class="check-item flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-violet-950/40">
+            <input type="checkbox" checked class="qc-box rounded accent-violet-500 w-4 h-4">
+            <span>IMEI matches box/settings &amp; verified via 16002 SMS</span>
+          </label>
+          <label class="check-item flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-violet-950/40">
+            <input type="checkbox" checked class="qc-box rounded accent-violet-500 w-4 h-4">
+            <span>Full-screen touch test &amp; zero dead pixels / lines (light glass crack ok)</span>
+          </label>
+          <label class="check-item flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-violet-950/40">
+            <input type="checkbox" checked class="qc-box rounded accent-violet-500 w-4 h-4">
+            <span>5-minute camera/video stress test for sudden battery drop</span>
+          </label>
+          <label class="check-item flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-violet-950/40">
+            <input type="checkbox" checked class="qc-box rounded accent-violet-500 w-4 h-4">
+            <span>Charging port grip &amp; steady battery percentage rise</span>
+          </label>
+          <label class="check-item flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-violet-950/40">
+            <input type="checkbox" class="qc-box rounded accent-violet-500 w-4 h-4">
+            <span>4G SIM signal, call mic, earpiece &amp; loudspeaker clarity</span>
+          </label>
+          <label class="check-item flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-violet-950/40">
+            <input type="checkbox" class="qc-box rounded accent-violet-500 w-4 h-4">
+            <span>Wi-Fi, Bluetooth, GPS &amp; flashlight working smoothly</span>
+          </label>
+          <label class="check-item flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-violet-950/40">
+            <input type="checkbox" class="qc-box rounded accent-violet-500 w-4 h-4">
+            <span>Fingerprint / Face ID &amp; physical volume/power buttons</span>
+          </label>
+          <label class="check-item flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-violet-950/40">
+            <input type="checkbox" class="qc-box rounded accent-violet-500 w-4 h-4">
+            <span>All Google / Mi / Samsung / iCloud accounts signed out cleanly</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 06: INTERACTIVE DEAL LEDGER & PHASE-3 PC BLUEPRINT -->
+    <div id="view-ledger" class="app-view space-y-6 print-break">
+      <div class="cyber-card rounded-2xl p-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div>
+            <span class="text-xs font-mono text-violet-300 uppercase">Interactive Accounting</span>
+            <h2 class="text-xl font-bold text-white">Live Deal Ledger &amp; Founders Charter</h2>
+          </div>
+          <span class="text-xs text-violet-200 font-mono">Log Real Flips Below (Auto-Saves in Browser)</span>
+        </div>
+
+        <!-- Add Real Deal Mini Form -->
+        <div class="no-print grid grid-cols-2 sm:grid-cols-6 gap-2 mb-4 bg-black/80 p-3 rounded-xl border border-violet-500/20">
+          <input id="ledModel" type="text" placeholder="Model + IMEI 4-digit" class="col-span-2 px-3 py-2 rounded-lg bg-zinc-950 border border-violet-500/35 text-xs text-white">
+          <input id="ledBuy" type="number" placeholder="Buy ৳" class="px-3 py-2 rounded-lg bg-zinc-950 border border-violet-500/35 text-xs text-white">
+          <input id="ledTouch" type="number" placeholder="Touch-up ৳" class="px-3 py-2 rounded-lg bg-zinc-950 border border-violet-500/35 text-xs text-white">
+          <input id="ledSell" type="number" placeholder="Sold ৳" class="px-3 py-2 rounded-lg bg-zinc-950 border border-violet-500/35 text-xs text-white">
+          <button onclick="addLedgerRow()" class="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-extrabold text-xs border border-violet-300/30 cursor-pointer">+ Add Deal</button>
+        </div>
+
+        <div class="overflow-x-auto mb-5">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-violet-500/30 bg-black/80 text-violet-200">
+                <th class="p-3 font-bold">Unit ID</th>
+                <th class="p-3 font-bold">Model &amp; IMEI</th>
+                <th class="p-3 font-bold">Buy</th>
+                <th class="p-3 font-bold">Touch-Up</th>
+                <th class="p-3 font-bold">Sold</th>
+                <th class="p-3 font-bold">Net Profit</th>
+                <th class="p-3 font-bold no-print">Action</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerBody" class="divide-y divide-violet-500/15 text-zinc-200"></tbody>
+          </table>
+        </div>
+
+        <!-- Phase-3 PC Expansion Preview -->
+        <div class="p-4 rounded-xl bg-violet-950/45 border border-violet-400/35 mb-5 text-xs">
+          <div class="font-bold text-violet-200 mb-1">Phase-3 PC Flip Target (Unlock at 35,000+ BDT Capital):</div>
+          <p class="text-zinc-200">Buy complete Core i3/i5 4th–6th Gen office/student PCs (8GB RAM + 120GB SSD + 19" LED Monitor) at <strong class="text-white">9,000–12,000 ৳</strong>, clean dust + fresh Windows/thermal paste (300 ৳), and resell at <strong class="text-violet-200">12,999–15,499 ৳</strong> (+2,500–3,500 ৳ profit per PC).</p>
+        </div>
+
+        <!-- Official PDF Signature Strip -->
+        <div class="pt-4 border-t border-violet-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-zinc-300">
+          <div>
+            <strong class="text-white">B2 • 2nd Hand Mobile &amp; PC</strong> — Founders Agreement (Seed: 15,000 BDT)
+          </div>
+          <div class="flex flex-wrap gap-6 font-mono">
+            <span>Jasin: ______________</span>
+            <span>Anik: ______________</span>
+            <span>Rafid: ______________</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Full Screen Mode Toggle with Fallback Support
+    let pseudoFullScreen = false;
+
+    function isCurrentlyFullScreen() {
+      return Boolean(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement ||
+        pseudoFullScreen
+      );
+    }
+
+    function syncFullScreenButtonUI() {
+      const active = isCurrentlyFullScreen();
+      const expandIcon = document.getElementById('expandIcon');
+      const compressIcon = document.getElementById('compressIcon');
+      const label = document.getElementById('fullScreenLabel');
+      const btn = document.getElementById('fullScreenBtn');
+
+      if (expandIcon && compressIcon) {
+        expandIcon.classList.toggle('hidden', active);
+        compressIcon.classList.toggle('hidden', !active);
+      }
+      if (label) {
+        label.textContent = active ? 'Exit Full' : 'Full Screen';
+      }
+      if (btn) {
+        btn.classList.toggle('border-white', active);
+        btn.classList.toggle('bg-violet-950/70', active);
+      }
+    }
+
+    async function toggleFullScreen() {
+      try {
+        const root = document.documentElement;
+        if (!isCurrentlyFullScreen()) {
+          if (root.requestFullscreen) {
+            await root.requestFullscreen();
+          } else if (root.webkitRequestFullscreen) {
+            root.webkitRequestFullscreen();
+          } else if (root.msRequestFullscreen) {
+            root.msRequestFullscreen();
+          } else {
+            // Fallback for sandboxed/iframe environments that block native Fullscreen API
+            pseudoFullScreen = true;
+            document.body.classList.add('fixed', 'inset-0', 'overflow-y-auto', 'z-40');
+          }
+        } else {
+          if (document.fullscreenElement && document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          } else if (document.msFullscreenElement && document.msExitFullscreen) {
+            document.msExitFullscreen();
+          }
+          pseudoFullScreen = false;
+          document.body.classList.remove('fixed', 'inset-0', 'overflow-y-auto', 'z-40');
+        }
+      } catch (err) {
+        // Fallback toggle if browser or iframe restricts native fullscreen
+        pseudoFullScreen = !pseudoFullScreen;
+        document.body.classList.toggle('fixed', pseudoFullScreen);
+        document.body.classList.toggle('inset-0', pseudoFullScreen);
+        document.body.classList.toggle('overflow-y-auto', pseudoFullScreen);
+        document.body.classList.toggle('z-40', pseudoFullScreen);
+      } finally {
+        syncFullScreenButtonUI();
+      }
+    }
+
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+      document.addEventListener(evt, () => {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          pseudoFullScreen = false;
+          document.body.classList.remove('fixed', 'inset-0', 'overflow-y-auto', 'z-40');
+        }
+        syncFullScreenButtonUI();
+      });
+    });
+
+    // 0. 3-Dot Navigation & Zero-Scroll View Switcher
+    const viewTitles = {
+      overview: '01 • Venture Overview & Founders',
+      profit: '02 • Profit & PC Growth Lab',
+      catalog: '03 • 54-Model Resale Catalog (2K–7K ৳)',
+      marketing: '04 • Marketing, Scripts & Ad Lab',
+      safety: '05 • BTRC Legal & 8-Point QC',
+      ledger: '06 • Live Ledger & PC Blueprint'
+    };
+
+    const threeDotMenu = document.getElementById('threeDotMenu');
+    const threeDotBtn = document.getElementById('threeDotBtn');
+
+    function toggleThreeDotMenu(e) {
+      e.stopPropagation();
+      threeDotMenu.classList.toggle('hidden-menu');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!threeDotMenu.contains(e.target) && !threeDotBtn.contains(e.target)) {
+        threeDotMenu.classList.add('hidden-menu');
+      }
+    });
+
+    function switchView(viewKey) {
+      document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active-view'));
+      const target = document.getElementById('view-' + viewKey);
+      if (target) target.classList.add('active-view');
+
+      document.getElementById('currentSectionLabel').textContent = viewTitles[viewKey] || '';
+
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        if (btn.dataset.nav === viewKey) {
+          btn.className = 'nav-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-cyan-300 bg-cyan-500/15 flex items-center justify-between transition cursor-pointer mt-1 first:mt-0';
+        } else {
+          btn.className = 'nav-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 flex items-center justify-between transition cursor-pointer mt-1 first:mt-0';
+        }
+      });
+
+      threeDotMenu.classList.add('hidden-menu');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 1. Subtle Interactive Neural Particle Canvas
+    const canvas = document.getElementById('neuralCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    for (let i = 0; i < 42; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: (Math.random() - 0.5) * 0.45,
+        r: Math.random() * 1.8 + 0.8
+      });
+    }
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(196, 181, 253, 0.65)';
+        ctx.fill();
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+          if (dist < 130) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(167, 139, 250, ${0.18 * (1 - dist / 130)})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    // 2. Spotlight Hover & 3D Micro-Tilt on Cyber Cards
+    // 4. Smart Deal Unit Simulator + Presets + Split Meter
+    const buyInput = document.getElementById('buyInput');
+    const touchInput = document.getElementById('touchInput');
+    const sellInput = document.getElementById('sellInput');
+
+    function formatBDT(n) {
+      return n.toLocaleString('en-US') + ' ৳';
+    }
+
+    function applyProfitPreset(buy, touch, sell) {
+      buyInput.value = buy;
+      touchInput.value = touch;
+      sellInput.value = sell;
+      updateUnitSimulator();
+    }
+
+    function updateUnitSimulator() {
+      const buy = parseInt(buyInput.value, 10);
+      const touch = parseInt(touchInput.value, 10);
+      const sell = parseInt(sellInput.value, 10);
+
+      const cost = buy + touch;
+      const anchor = Math.ceil((sell + 500) / 500) * 500 - 1;
+      const profit = sell - cost;
+      const roi = cost > 0 ? ((profit / cost) * 100).toFixed(1) : '0.0';
+
+      document.getElementById('buyVal').textContent = formatBDT(buy);
+      document.getElementById('touchVal').textContent = formatBDT(touch);
+      document.getElementById('sellVal').textContent = formatBDT(sell);
+      document.getElementById('totalCost').textContent = formatBDT(cost);
+      document.getElementById('listPrice').textContent = formatBDT(anchor);
+
+      const profitEl = document.getElementById('netProfit');
+      profitEl.textContent = (profit >= 0 ? '+' : '') + formatBDT(profit);
+      profitEl.className = profit >= 0
+        ? 'font-display text-sm font-extrabold text-white mt-0.5'
+        : 'font-display text-sm font-extrabold text-violet-300 mt-0.5';
+
+      document.getElementById('roiPercent').textContent = roi + '%';
+
+      // Smart verdict badge & stacked visual ratio meter
+      const verdictEl = document.getElementById('dealVerdictBadge');
+      if (profit < 0) {
+        verdictEl.textContent = 'Loss Alert ⚠️';
+      } else if (profit >= 1000 || parseFloat(roi) >= 30) {
+        verdictEl.textContent = 'High-Margin Flip ⚡';
+      } else if (profit >= 500) {
+        verdictEl.textContent = 'Healthy Flip ✓';
+      } else {
+        verdictEl.textContent = 'Thin Margin';
+      }
+
+      const safeSell = Math.max(sell, cost, 1);
+      const profitRatio = Math.max(0, Math.min(100, Math.round((Math.max(0, profit) / safeSell) * 100)));
+      const costRatio = 100 - profitRatio;
+      document.getElementById('costMeterBar').style.width = costRatio + '%';
+      document.getElementById('profitMeterBar').style.width = profitRatio + '%';
+      document.getElementById('costShareLabel').textContent = `Cost Share: ${costRatio}%`;
+      document.getElementById('profitShareLabel').textContent = `Profit Share: ${profitRatio}%`;
+
+      // Smart reinvestment (70%) + per-founder dividend (10% each)
+      const positiveProfit = Math.max(0, profit);
+      const reinvest = Math.round(positiveProfit * 0.70);
+      const perFounder = Math.round((positiveProfit * 0.30) / 3);
+      document.getElementById('reinvestShare').textContent = formatBDT(reinvest);
+      document.getElementById('perFounderShare').textContent = formatBDT(perFounder);
+    }
+
+    [buyInput, touchInput, sellInput].forEach(el => el.addEventListener('input', updateUnitSimulator));
+    updateUnitSimulator();
+
+    // 5. 6-Month Capital Compounding Simulator
+    const flipsInput = document.getElementById('flipsInput');
+    const growthBars = document.getElementById('growthBars');
+
+    function updateGrowthSimulator() {
+      const flips = parseInt(flipsInput.value, 10);
+      document.getElementById('flipsVal').textContent = `${flips} Phones / Month`;
+
+      let cap = 15000;
+      const avgProfitPerPhone = 900;
+      const reinvestRate = 0.70;
+      const history = [];
+      let pcUnlockMonth = null;
+
+      for (let m = 1; m <= 6; m++) {
+        cap += Math.round(flips * avgProfitPerPhone * reinvestRate);
+        history.push(cap);
+        if (cap >= 35000 && !pcUnlockMonth) pcUnlockMonth = m;
+      }
+
+      const maxCap = Math.max(...history, 50000);
+      growthBars.innerHTML = history.map((val, idx) => {
+        const heightPct = Math.max(18, Math.round((val / maxCap) * 100));
+        const isPcReady = val >= 35000;
+        return `
+          <div class="flex flex-col items-center justify-end h-full">
+            <span class="text-[9px] font-mono text-violet-200 mb-1">${(val / 1000).toFixed(1)}K</span>
+            <div class="w-full rounded-t-lg transition-all duration-300 ${isPcReady ? 'bg-gradient-to-t from-violet-600 via-purple-400 to-white' : 'bg-gradient-to-t from-violet-900 to-violet-500'}" style="height: ${heightPct}%"></div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('month6Cap').textContent = formatBDT(history[5]);
+      document.getElementById('pcUnlockBadge').textContent = pcUnlockMonth
+        ? `PC Ready: Month ${pcUnlockMonth}`
+        : 'Keep Reinvesting!';
+    }
+
+    flipsInput.addEventListener('input', updateGrowthSimulator);
+    updateGrowthSimulator();
+
+    // 6. Interactive 8-Point QC Gauge
+    const qcBoxes = document.querySelectorAll('.qc-box');
+    function updateQcGauge() {
+      const checked = document.querySelectorAll('.qc-box:checked').length;
+      const total = qcBoxes.length;
+      const pct = Math.round((checked / total) * 100);
+      document.getElementById('qcProgressBar').style.width = pct + '%';
+      const badge = document.getElementById('qcScoreBadge');
+      badge.textContent = checked === total ? '8 / 8 APPROVED TO BUY' : `${checked} / ${total} Passed`;
+      badge.className = checked === total
+        ? 'px-3 py-1 rounded-full bg-violet-500/35 border border-white/40 text-white font-mono text-xs font-bold print-badge'
+        : 'px-3 py-1 rounded-full bg-violet-950/70 border border-violet-400/30 text-violet-200 font-mono text-xs font-bold print-badge';
+    }
+    qcBoxes.forEach(box => box.addEventListener('change', updateQcGauge));
+    updateQcGauge();
+
+    // 7. Live Ad Generator & Clipboard Copy
+    const adModelInput = document.getElementById('adModelInput');
+    const adPriceInput = document.getElementById('adPriceInput');
+    const adAreaInput = document.getElementById('adAreaInput');
+    const adTemplateText = document.getElementById('adTemplateText');
+
+    function renderLiveAd() {
+      const model = adModelInput.value.trim() || 'Redmi Note 8 (4/64GB)';
+      const price = adPriceInput.value.trim() || '4,499 BDT';
+      const area = adAreaInput.value.trim() || 'Public Meetup Point';
+
+      adTemplateText.textContent = `📱 ${model} — Clean & Verified Condition
+💰 Price: ${price} (Slightly Negotiable for serious buyers)
+
+✅ Highlights & Specs:
+• Display: Crisp Original Display (Fresh Tempered Glass Installed)
+• Battery: Solid 1-Day Backup (Tested)
+• Camera, Fingerprint & Sensors: 100% Working Smoothly
+• Security: Official / BTRC Verified IMEI (Check via 16002)
+
+⚠️ Honest Condition Disclosure:
+• Light cover marks on back shell; never opened or motherboard repaired.
+
+🎯 Who Should Buy: Students, online classes, delivery riders, or reliable daily backup use.
+🎁 Free Value-Add: New glass protector + back cover included!
+📍 Meetup Point: ${area} (Check for 15 mins with your own SIM before paying).`;
+    }
+
+    [adModelInput, adPriceInput, adAreaInput].forEach(el => el.addEventListener('input', renderLiveAd));
+    renderLiveAd();
+
+    function copyListingTemplate() {
+      const textarea = document.createElement('textarea');
+      textarea.value = adTemplateText.textContent;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        const btn = document.getElementById('copyAdBtn');
+        btn.textContent = 'Copied to Clipboard!';
+        setTimeout(() => { btn.textContent = 'Copy Generated Ad'; }, 2000);
+      } catch (e) {
+        console.error(e);
+      }
+      document.body.removeChild(textarea);
+    }
+
+    // 8. 54-Model Bangladesh Resale Database (2K - 7K BDT)
+    const phoneCatalog = [
+      // --- ANDROID (42 MODELS) ---
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi 6A (2/32GB)', tier: '2K-3.5K', buy: '1,800–2,200 ৳', sell: '2,699 ৳', demand: 'High', note: 'Scuffed back ok; great backup/rider phone' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi 7A (2/32GB)', tier: '2K-3.5K', buy: '2,000–2,400 ৳', sell: '2,999 ৳', demand: 'High', note: '4000mAh battery; hairline glass crack ok' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi 8A (3/32GB)', tier: '2K-3.5K', buy: '2,300–2,700 ৳', sell: '3,499 ৳', demand: 'Very High', note: '5000mAh + Type-C; fast FB Marketplace flip' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi 9A (2/32GB)', tier: '2K-3.5K', buy: '2,400–2,800 ৳', sell: '3,499 ৳', demand: 'Very High', note: 'Big display; cover worn backshell easily' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi 9C (3/64GB)', tier: '3.5K-5K', buy: '2,900–3,400 ৳', sell: '4,199 ৳', demand: 'Very High', note: 'Rear fingerprint; minor glass crack -500৳' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi 9 (4/64GB)', tier: '3.5K-5K', buy: '3,500–4,100 ৳', sell: '4,999 ৳', demand: 'Hot', note: 'FHD+ Helio G80; super popular with students' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi Note 6 Pro (4/64GB)', tier: '3.5K-5K', buy: '3,100–3,600 ৳', sell: '4,499 ৳', demand: 'High', note: 'Metal back dents ok; strong Snapdragon 636' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi Note 7 (4/64GB)', tier: '3.5K-5K', buy: '3,300–3,900 ৳', sell: '4,799 ৳', demand: 'Hot', note: '48MP camera; back glass crack ok with cover' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi Note 8 (4/64GB)', tier: '5K-7K', buy: '4,200–4,900 ৳', sell: '5,999 ৳', demand: 'Hot', note: 'Top seller in BD; cracked back glass easy fix' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi Note 9 (4/64GB)', tier: '5K-7K', buy: '4,600–5,300 ৳', sell: '6,499 ৳', demand: 'Very High', note: '5020mAh battery; light corner crack acceptable' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Redmi 10C (4/64GB)', tier: '5K-7K', buy: '4,800–5,500 ৳', sell: '6,799 ৳', demand: 'Very High', note: 'Snapdragon 680; sells within 48 hours' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Poco M2 (6/64GB)', tier: '5K-7K', buy: '4,500–5,200 ৳', sell: '6,299 ৳', demand: 'High', note: '6GB RAM attracts budget gamers quickly' },
+      { os: 'Android', brand: 'Xiaomi', model: 'Poco C3 (3/32GB)', tier: '3.5K-5K', buy: '2,800–3,300 ৳', sell: '3,999 ৳', demand: 'High', note: 'Textured back hides scratches well' },
+      { os: 'Android', brand: 'Realme', model: 'Realme C2 (2/32GB)', tier: '2K-3.5K', buy: '1,900–2,300 ৳', sell: '2,899 ৳', demand: 'High', note: 'Diamond cut back; light glass crack ok' },
+      { os: 'Android', brand: 'Realme', model: 'Realme C11 (2/32GB)', tier: '2K-3.5K', buy: '2,400–2,900 ৳', sell: '3,499 ৳', demand: 'Very High', note: '5000mAh; high demand for online classes' },
+      { os: 'Android', brand: 'Realme', model: 'Realme C12 (3/32GB)', tier: '3.5K-5K', buy: '2,900–3,400 ৳', sell: '4,199 ৳', demand: 'High', note: '6000mAh monster battery; minor scuffs ok' },
+      { os: 'Android', brand: 'Realme', model: 'Realme C15 (4/64GB)', tier: '3.5K-5K', buy: '3,400–3,900 ৳', sell: '4,799 ৳', demand: 'Very High', note: '6000mAh + 18W fast charge; fast turnover' },
+      { os: 'Android', brand: 'Realme', model: 'Realme C21 (4/64GB)', tier: '3.5K-5K', buy: '3,500–4,100 ৳', sell: '4,999 ৳', demand: 'Hot', note: 'Clean UI & reliable battery; easy flip' },
+      { os: 'Android', brand: 'Realme', model: 'Realme C25s (4/64GB)', tier: '5K-7K', buy: '4,400–5,100 ৳', sell: '6,199 ৳', demand: 'Very High', note: 'Helio G85 + 6000mAh; light crack -600৳' },
+      { os: 'Android', brand: 'Realme', model: 'Realme 5i (4/64GB)', tier: '3.5K-5K', buy: '3,500–4,100 ৳', sell: '4,899 ৳', demand: 'Hot', note: 'Snapdragon 665 quad cam; huge BD fan base' },
+      { os: 'Android', brand: 'Realme', model: 'Realme Narzo 20 (4/64GB)', tier: '5K-7K', buy: '4,300–4,900 ৳', sell: '5,999 ৳', demand: 'Very High', note: 'Gaming budget favorite; worn backshell ok' },
+      { os: 'Android', brand: 'Realme', model: 'Realme Narzo 50i (4/64GB)', tier: '5K-7K', buy: '4,200–4,800 ৳', sell: '5,799 ৳', demand: 'High', note: 'Slim look; fresh glass protector boosts value' },
+      { os: 'Android', brand: 'Samsung', model: 'Galaxy A10s (2/32GB)', tier: '2K-3.5K', buy: '2,300–2,800 ৳', sell: '3,499 ৳', demand: 'Very High', note: 'Samsung brand trust; check charging port' },
+      { os: 'Android', brand: 'Samsung', model: 'Galaxy A20s (3/32GB)', tier: '3.5K-5K', buy: '3,100–3,600 ৳', sell: '4,499 ৳', demand: 'High', note: 'Glossy back scratches easily—add 100৳ cover' },
+      { os: 'Android', brand: 'Samsung', model: 'Galaxy A03s (4/64GB)', tier: '3.5K-5K', buy: '3,500–4,000 ৳', sell: '4,899 ৳', demand: 'Very High', note: 'Side fingerprint + Type-C; sells fast' },
+      { os: 'Android', brand: 'Samsung', model: 'Galaxy M11 (3/32GB)', tier: '3.5K-5K', buy: '3,100–3,700 ৳', sell: '4,499 ৳', demand: 'High', note: 'Punch-hole display; hairline glass crack ok' },
+      { os: 'Android', brand: 'Samsung', model: 'Galaxy M21 (4/64GB)', tier: '5K-7K', buy: '4,800–5,500 ৳', sell: '6,799 ৳', demand: 'Hot', note: 'sAMOLED + 6000mAh; ONLY buy if display spotless' },
+      { os: 'Android', brand: 'Samsung', model: 'Galaxy A12 (4/64GB)', tier: '5K-7K', buy: '4,600–5,300 ৳', sell: '6,499 ৳', demand: 'Very High', note: '48MP quad cam; matte back hides wear well' },
+      { os: 'Android', brand: 'Vivo', model: 'Vivo Y91C (2/32GB)', tier: '2K-3.5K', buy: '1,900–2,300 ৳', sell: '2,899 ৳', demand: 'High', note: 'Lightweight; ideal elder/student phone' },
+      { os: 'Android', brand: 'Vivo', model: 'Vivo Y11 (3/32GB)', tier: '2K-3.5K', buy: '2,400–2,900 ৳', sell: '3,499 ৳', demand: 'Very High', note: '5000mAh; backshell scratches very common & ok' },
+      { os: 'Android', brand: 'Vivo', model: 'Vivo Y12 (3/64GB)', tier: '3.5K-5K', buy: '2,900–3,400 ৳', sell: '4,199 ৳', demand: 'Very High', note: 'Triple cam + big battery; easy Bikroy flip' },
+      { os: 'Android', brand: 'Vivo', model: 'Vivo Y15 (4/64GB)', tier: '3.5K-5K', buy: '3,300–3,800 ৳', sell: '4,699 ৳', demand: 'High', note: 'Good selfie cam; hairline corner crack ok' },
+      { os: 'Android', brand: 'Vivo', model: 'Vivo Y20 (4/64GB)', tier: '5K-7K', buy: '4,300–4,900 ৳', sell: '5,999 ৳', demand: 'Very High', note: 'Side fingerprint; very high local demand' },
+      { os: 'Android', brand: 'Oppo', model: 'Oppo A3s (2/16 or 3/32)', tier: '2K-3.5K', buy: '1,900–2,400 ৳', sell: '2,999 ৳', demand: 'High', note: 'Classic budget phone; scuffed backshell ok' },
+      { os: 'Android', brand: 'Oppo', model: 'Oppo A5s (3/32GB)', tier: '2K-3.5K', buy: '2,300–2,800 ৳', sell: '3,499 ৳', demand: 'Very High', note: 'Smooth ColorOS; fast under-3.5K seller' },
+      { os: 'Android', brand: 'Oppo', model: 'Oppo A12 (3/32GB)', tier: '3.5K-5K', buy: '2,800–3,300 ৳', sell: '3,999 ৳', demand: 'High', note: 'Diamond back design; minor glass crack ok' },
+      { os: 'Android', brand: 'Oppo', model: 'Oppo A15s (4/64GB)', tier: '3.5K-5K', buy: '3,500–4,100 ৳', sell: '4,999 ৳', demand: 'Very High', note: 'Slim & stylish; sells fast to female buyers' },
+      { os: 'Android', brand: 'Oppo', model: 'Oppo A53 (4/64GB)', tier: '5K-7K', buy: '4,700–5,400 ৳', sell: '6,599 ৳', demand: 'Very High', note: '90Hz display + dual speakers; great margin' },
+      { os: 'Android', brand: 'Infinix', model: 'Infinix Hot 9 Play (4/64)', tier: '3.5K-5K', buy: '3,100–3,600 ৳', sell: '4,399 ৳', demand: 'High', note: '6000mAh + 6.82" screen; media lovers buy fast' },
+      { os: 'Android', brand: 'Infinix', model: 'Infinix Hot 10 Play (4/64)', tier: '3.5K-5K', buy: '3,400–3,900 ৳', sell: '4,799 ৳', demand: 'Very High', note: 'Helio G35; worn backshell easily covered' },
+      { os: 'Android', brand: 'Tecno', model: 'Tecno Spark 6 Go (3/64)', tier: '3.5K-5K', buy: '2,900–3,400 ৳', sell: '4,199 ৳', demand: 'High', note: '5000mAh; hairline glass crack -500৳ discount' },
+      { os: 'Android', brand: 'Tecno', model: 'Tecno Spark 7 Pro (4/64)', tier: '5K-7K', buy: '4,300–4,900 ৳', sell: '5,999 ৳', demand: 'Very High', note: '90Hz punch-hole + Helio G80; strong value' },
+
+      // --- APPLE iPHONE (12 MODELS) ---
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 5s (16/32GB)', tier: '2K-3.5K', buy: '1,800–2,300 ৳', sell: '2,999 ৳', demand: 'Moderate', note: 'Collector/secondary call phone; clean iCloud only' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone SE 1st Gen (32/64)', tier: '3.5K-5K', buy: '3,000–3,600 ৳', sell: '4,499 ৳', demand: 'High', note: 'A9 chip in 5s body; minor frame scuffs ok' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 6 (32/64GB)', tier: '3.5K-5K', buy: '3,000–3,600 ৳', sell: '4,499 ৳', demand: 'High', note: 'Hairline glass crack ok; check Touch ID & speaker' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 6 Plus (64GB)', tier: '3.5K-5K', buy: '3,500–4,100 ৳', sell: '4,999 ৳', demand: 'High', note: 'Big 5.5" screen; ensure zero touch-IC issue' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 6s (32/64GB)', tier: '3.5K-5K', buy: '3,600–4,200 ৳', sell: '4,999 ৳', demand: 'Hot', note: '2GB RAM + 4K video; top under-5K iPhone flip' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 6s Plus (64GB)', tier: '5K-7K', buy: '4,300–4,900 ৳', sell: '5,999 ৳', demand: 'Very High', note: 'Scratched aluminum back ok; check battery health' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 7 (32GB)', tier: '5K-7K', buy: '4,600–5,200 ৳', sell: '6,299 ৳', demand: 'Hot', note: 'Huge youth demand; verify network & audio IC' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 7 (128GB)', tier: '5K-7K', buy: '5,100–5,700 ৳', sell: '6,899 ৳', demand: 'Hot', note: '128GB sells 2x faster; hairline corner glass ok' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 7 (Minor Glass Crack)', tier: '3.5K-5K', buy: '3,700–4,200 ৳', sell: '4,999 ৳', demand: 'Very High', note: 'Buy cheap with light top/bottom crack; disclose' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 7 Plus (32GB - Light Crack)', tier: '5K-7K', buy: '5,200–5,800 ৳', sell: '6,999 ৳', demand: 'Hot', note: 'Dual portrait cam; minor glass crack makes it <7K' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone 8 (64GB - Minor Back Crack)', tier: '5K-7K', buy: '5,300–5,900 ৳', sell: '6,999 ৳', demand: 'Hot', note: 'Cracked rear glass hidden by cover = huge profit!' },
+      { os: 'Apple', brand: 'Apple', model: 'iPhone SE 2020 (Cracked Back)', tier: '5K-7K', buy: '5,400–5,900 ৳', sell: '6,999 ৳', demand: 'Very High', note: 'A13 Bionic beast; rear glass crack drops buy cost' }
+    ];
+
+    let currentOsFilter = 'ALL';
+    const androidGrid = document.getElementById('androidGrid');
+    const appleGrid = document.getElementById('appleGrid');
+    const androidSection = document.getElementById('androidSection');
+    const appleSection = document.getElementById('appleSection');
+    const modelSearchInput = document.getElementById('modelSearchInput');
+    const tierFilterSelect = document.getElementById('tierFilterSelect');
+
+    function setOsFilter(os) {
+      currentOsFilter = os;
+      ['filterAll', 'filterAndroid', 'filterApple'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.classList.remove('active');
+        btn.classList.add('text-slate-300');
+      });
+      const activeId = os === 'ALL' ? 'filterAll' : (os === 'Android' ? 'filterAndroid' : 'filterApple');
+      const activeBtn = document.getElementById(activeId);
+      activeBtn.classList.add('active');
+      activeBtn.classList.remove('text-slate-300');
+      renderPhoneCatalog();
+    }
+
+    function renderPhoneCard(item) {
+      const isApple = item.os === 'Apple';
+      const badgeColor = isApple
+        ? 'bg-white/10 text-white border-white/30'
+        : 'bg-violet-600/25 text-violet-200 border-violet-400/35';
+
+      return `
+        <div class="p-3.5 rounded-xl bg-black/80 border border-violet-500/20 hover:border-violet-300/55 transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded border ${badgeColor} print-badge">${item.brand} • ${item.tier}</span>
+              <span class="text-[10px] font-bold text-violet-300">${item.demand}</span>
+            </div>
+            <h4 class="font-bold text-white text-sm mb-2">${item.model}</h4>
+          </div>
+          <div>
+            <div class="grid grid-cols-2 gap-1.5 text-[11px] bg-zinc-950 p-2 rounded-lg border border-violet-500/15 mb-2">
+              <div>
+                <span class="text-zinc-400 block text-[9px] uppercase">Target Buy</span>
+                <span class="font-mono font-bold text-violet-200">${item.buy}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-zinc-400 block text-[9px] uppercase">Resell (.99)</span>
+                <span class="font-mono font-extrabold text-white">${item.sell}</span>
+              </div>
+            </div>
+            <p class="text-[11px] text-zinc-300 leading-snug">• ${item.note}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPhoneCatalog() {
+      const query = modelSearchInput.value.trim().toLowerCase();
+      const tier = tierFilterSelect.value;
+
+      const filtered = phoneCatalog.filter(item => {
+        const matchesOs = currentOsFilter === 'ALL' || item.os === currentOsFilter;
+        const matchesTier = tier === 'ALL' || item.tier === tier;
+        const matchesSearch = !query ||
+          item.model.toLowerCase().includes(query) ||
+          item.brand.toLowerCase().includes(query) ||
+          item.note.toLowerCase().includes(query);
+        return matchesOs && matchesTier && matchesSearch;
+      });
+
+      const androidItems = filtered.filter(i => i.os === 'Android');
+      const appleItems = filtered.filter(i => i.os === 'Apple');
+
+      androidSection.style.display = (currentOsFilter === 'Apple') ? 'none' : 'block';
+      appleSection.style.display = (currentOsFilter === 'Android') ? 'none' : 'block';
+
+      document.getElementById('androidCountBadge').textContent = `${androidItems.length} Models`;
+      document.getElementById('appleCountBadge').textContent = `${appleItems.length} Models`;
+
+      androidGrid.innerHTML = androidItems.length
+        ? androidItems.map(renderPhoneCard).join('')
+        : '<div class="col-span-full text-xs text-slate-400 p-4 text-center bg-slate-900/50 rounded-xl">No Android models match this filter.</div>';
+
+      appleGrid.innerHTML = appleItems.length
+        ? appleItems.map(renderPhoneCard).join('')
+        : '<div class="col-span-full text-xs text-slate-400 p-4 text-center bg-slate-900/50 rounded-xl">No Apple models match this filter.</div>';
+    }
+
+    modelSearchInput.addEventListener('input', renderPhoneCatalog);
+    tierFilterSelect.addEventListener('change', renderPhoneCatalog);
+    renderPhoneCatalog();
+
+    // 9. Interactive Deal Ledger (LocalStorage Persisted)
+    const defaultDeals = [
+      { id: '#UNIT-01', model: 'Redmi Note 7 (•4821) [Sample]', buy: 2800, touch: 200, sell: 3999 },
+      { id: '#UNIT-02', model: 'Realme C21 (•9104) [Target]', buy: 3200, touch: 150, sell: 4299 }
+    ];
+    let ledgerDeals = JSON.parse(localStorage.getItem('2h_ledger_deals') || 'null') || defaultDeals;
+
+    function renderLedger() {
+      const tbody = document.getElementById('ledgerBody');
+      tbody.innerHTML = ledgerDeals.map((d, idx) => {
+        const profit = d.sell - (d.buy + d.touch);
+        const profitClass = profit >= 0 ? 'text-white' : 'text-violet-300';
+        return `
+          <tr>
+            <td class="p-3 font-mono font-bold text-violet-300">${d.id}</td>
+            <td class="p-3">${d.model}</td>
+            <td class="p-3">${d.buy.toLocaleString()} ৳</td>
+            <td class="p-3">${d.touch.toLocaleString()} ৳</td>
+            <td class="p-3">${d.sell.toLocaleString()} ৳</td>
+            <td class="p-3 font-bold ${profitClass}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()} ৳</td>
+            <td class="p-3 no-print">
+              <button onclick="removeLedgerRow(${idx})" class="text-violet-300 hover:text-white underline text-xs cursor-pointer">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function addLedgerRow() {
+      const model = document.getElementById('ledModel').value.trim();
+      const buy = parseInt(document.getElementById('ledBuy').value, 10);
+      const touch = parseInt(document.getElementById('ledTouch').value || '0', 10);
+      const sell = parseInt(document.getElementById('ledSell').value, 10);
+      if (!model || isNaN(buy) || isNaN(sell)) return;
+
+      const nextNum = String(ledgerDeals.length + 1).padStart(2, '0');
+      ledgerDeals.push({ id: `#UNIT-${nextNum}`, model, buy, touch, sell });
+      localStorage.setItem('2h_ledger_deals', JSON.stringify(ledgerDeals));
+      ['ledModel', 'ledBuy', 'ledTouch', 'ledSell'].forEach(id => { document.getElementById(id).value = ''; });
+      renderLedger();
+    }
+
+    function removeLedgerRow(idx) {
+      ledgerDeals.splice(idx, 1);
+      localStorage.setItem('2h_ledger_deals', JSON.stringify(ledgerDeals));
+      renderLedger();
+    }
+
+    renderLedger();
+  </script>
+</body>
+</html>
+```
